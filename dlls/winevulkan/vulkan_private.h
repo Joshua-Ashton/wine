@@ -34,6 +34,18 @@
 
 #include "vulkan_thunks.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#include <alloca.h>
+#define WINEVULKAN_FORCEINLINE __attribute__((always_inline)) inline
+#define WINEVULKAN_ALLOCA(x)   alloca(x)
+#elif defined(_MSC_VER)
+#include <malloc.h>
+#define WINEVULKAN_FORCEINLINE __forceinline
+#define WINEVULKAN_ALLOCA(x)   _alloca(x)
+#else
+#error Unsupported platform for forceinline/alloca
+#endif
+
 /* Magic value defined by Vulkan ICD / Loader spec */
 #define VULKAN_ICD_MAGIC_VALUE 0x01CDC0DE
 
