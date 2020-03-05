@@ -517,9 +517,6 @@ void WINAPI wine_vkCmdExecuteCommands(VkCommandBuffer buffer, uint32_t count,
 
     TRACE("%p %u %p\n", buffer, count, buffers);
 
-    if (!buffers || !count)
-        return;
-
     tmp_buffers = WINEVULKAN_ALLOCA(count * sizeof(*tmp_buffers));
 
     for (i = 0; i < count; i++)
