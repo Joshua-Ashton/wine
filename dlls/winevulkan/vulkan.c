@@ -128,6 +128,8 @@ static struct VkPhysicalDevice_T *wine_vk_physical_device_alloc(struct VkInstanc
         }
     }
 
+    num_properties += wine_vk_device_extension_faked_count(); 
+
     TRACE("Host supported extensions %u, Wine supported extensions %u\n", num_host_properties, num_properties);
 
     if (!(object->extensions = heap_calloc(num_properties, sizeof(*object->extensions))))
@@ -143,6 +145,12 @@ static struct VkPhysicalDevice_T *wine_vk_physical_device_alloc(struct VkInstanc
             object->extensions[j] = host_properties[i];
             j++;
         }
+    }
+
+    for (i = 0; i < wine_vk_device_extension_faked_count(); i++)
+    {
+        object->extensions[j] = *wine_vk_device_extension_faked_idx(i);
+        j++;
     }
     object->extension_count = num_properties;
 
@@ -224,13 +232,27 @@ static void wine_vk_device_free_create_info(VkDeviceCreateInfo *create_info)
         heap_free((void *)group_info->pPhysicalDevices);
     }
 
+    heap_free((void *)create_info->ppEnabledExtensionNames); 
+
     free_VkDeviceCreateInfo_struct_chain(create_info);
+}
+
+static BOOL wine_vk_device_extension_faked(const char *name)
+{
+    unsigned int i;
+    for (i = 0; i < wine_vk_device_extension_faked_count(); i++)
+    {
+        if (strcmp(wine_vk_device_extension_faked_idx(i)->extensionName, name) == 0)
+            return TRUE;
+    }
+    return FALSE;
 }
 
 static VkResult wine_vk_device_convert_create_info(const VkDeviceCreateInfo *src,
         VkDeviceCreateInfo *dst)
 {
     VkDeviceGroupDeviceCreateInfo *group_info;
+    const char** extensions;
     unsigned int i;
     VkResult res;
 
@@ -257,6 +279,20 @@ static VkResult wine_vk_device_convert_create_info(const VkDeviceCreateInfo *src
             physical_devices[i] = group_info->pPhysicalDevices[i]->phys_dev;
         }
         group_info->pPhysicalDevices = physical_devices;
+    }
+
+    /* Allocate our own extension list, and remove any faked extensions
+     * so they don't get passed through to the driver. */
+    extensions = heap_alloc(sizeof(const char*) * src->enabledExtensionCount);
+    dst->ppEnabledExtensionNames = extensions;
+    dst->enabledExtensionCount = 0;
+    for (i = 0; i < src->enabledExtensionCount; i++) {
+        const char *extension_name = src->ppEnabledExtensionNames[i];
+
+        if (!wine_vk_device_extension_faked(extension_name)) {
+            extensions[dst->enabledExtensionCount] = extension_name;
+            dst->enabledExtensionCount++;
+        }
     }
 
     /* Should be filtered out by loader as ICDs don't support layers. */

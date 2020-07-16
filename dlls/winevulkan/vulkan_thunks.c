@@ -5861,6 +5861,11 @@ static const char * const vk_device_extensions[] =
     "VK_QCOM_render_pass_transform",
 };
 
+static const VkExtensionProperties vk_device_extension_faked[] =
+{
+    {"VK_DUMMY_extension", 4},
+};
+
 static const char * const vk_instance_extensions[] =
 {
     "VK_EXT_headless_surface",
@@ -5895,4 +5900,14 @@ BOOL wine_vk_instance_extension_supported(const char *name)
             return TRUE;
     }
     return FALSE;
+}
+
+unsigned int wine_vk_device_extension_faked_count(void)
+{
+    return ARRAY_SIZE(vk_device_extension_faked);
+}
+
+const VkExtensionProperties* wine_vk_device_extension_faked_idx(unsigned int idx)
+{
+    return &vk_device_extension_faked[idx];
 }
