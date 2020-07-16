@@ -1307,10 +1307,24 @@ VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceCapabilities2KHR(
     VkSurfaceCapabilities2KHR*                  pSurfaceCapabilities)
 {
     VkResult res;
+    VkSurfaceCapabilitiesFullScreenExclusiveEXT* full_screen_exclusive_caps;
+
+    /* Toss out VkSurfaceFullScreenExclusiveInfoEXT
+     * and VkSurfaceFullScreenExclusiveWin32InfoEXT */
+    VkPhysicalDeviceSurfaceInfo2KHR surface_info;
+    surface_info.sType   = pSurfaceInfo->sType;
+    surface_info.pNext   = NULL;
+    surface_info.surface = pSurfaceInfo->surface;
 
     TRACE("%p, %p, %p\n", physicalDevice, pSurfaceInfo, pSurfaceCapabilities);
 
-    res = thunk_vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice, pSurfaceInfo, pSurfaceCapabilities);
+    res = thunk_vkGetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice, &surface_info, pSurfaceCapabilities);
+
+    /* lie and say we support this.... */
+    if ((full_screen_exclusive_caps = wine_vk_find_struct(pSurfaceInfo, SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT)))
+    {
+        full_screen_exclusive_caps->fullScreenExclusiveSupported = VK_TRUE;
+    }
 
     return res;
 }
@@ -1321,9 +1335,16 @@ VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceFormats2KHR(
     uint32_t*                                   pSurfaceFormatCount,
     VkSurfaceFormat2KHR*                        pSurfaceFormats)
 {
+    /* Toss out VkSurfaceFullScreenExclusiveInfoEXT
+     * and VkSurfaceFullScreenExclusiveWin32InfoEXT */
+    VkPhysicalDeviceSurfaceInfo2KHR surface_info;
+    surface_info.sType   = pSurfaceInfo->sType;
+    surface_info.pNext   = NULL;
+    surface_info.surface = pSurfaceInfo->surface;
+
     TRACE("%p, %p, %p, %p\n", physicalDevice, pSurfaceInfo, pSurfaceFormatCount, pSurfaceFormats);
 
-    return thunk_vkGetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, pSurfaceInfo, pSurfaceFormatCount, pSurfaceFormats);
+    return thunk_vkGetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, &surface_info, pSurfaceFormatCount, pSurfaceFormats);
 }
 
 VkResult WINAPI wine_vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR *pModes)
@@ -1334,6 +1355,41 @@ VkResult WINAPI wine_vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkS
 VkResult WINAPI wine_vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t *pPresentModeCount, VkPresentModeKHR *pPresentModes)
 {
     return thunk_vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, pPresentModeCount, pPresentModes);
+}
+
+VkResult WINAPI wine_vkGetPhysicalDeviceSurfacePresentModes2EXT(
+    VkPhysicalDevice                            physicalDevice,
+    const VkPhysicalDeviceSurfaceInfo2KHR*      pSurfaceInfo,
+    uint32_t*                                   pPresentModeCount,
+    VkPresentModeKHR*                           pPresentModes)
+{
+    TRACE("%p, %p, %p, %p", physicalDevice, pSurfaceInfo, pPresentModeCount, pPresentModes);
+    return thunk_vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, pSurfaceInfo->surface, pPresentModeCount, pPresentModes);
+}
+
+VkResult WINAPI wine_vkGetDeviceGroupSurfacePresentModes2EXT(
+    VkDevice                                    device,
+    const VkPhysicalDeviceSurfaceInfo2KHR*      pSurfaceInfo,
+    VkDeviceGroupPresentModeFlagsKHR*           pModes)
+{
+    TRACE("%p, %p, %p", device, pSurfaceInfo, pModes);
+    return thunk_vkGetDeviceGroupSurfacePresentModesKHR(device, pSurfaceInfo->surface, pModes);
+}
+
+VkResult WINAPI wine_vkAcquireFullScreenExclusiveModeEXT(
+    VkDevice                                    device,
+    VkSwapchainKHR                              swapchain)
+{
+    TRACE("%p, %s", device, wine_dbgstr_longlong(swapchain));
+    return VK_SUCCESS;
+}
+
+VkResult WINAPI wine_vkReleaseFullScreenExclusiveModeEXT(
+    VkDevice                                    device,
+    VkSwapchainKHR                              swapchain)
+{
+    TRACE("%p, %s", device, wine_dbgstr_longlong(swapchain));
+    return VK_SUCCESS;
 }
 
 static HANDLE get_display_device_init_mutex(void)

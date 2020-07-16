@@ -989,6 +989,15 @@ static inline void convert_VkMemoryRequirements2_host_to_win(const VkMemoryRequi
     convert_VkMemoryRequirements_host_to_win(&in->memoryRequirements, &out->memoryRequirements);
 }
 
+static inline void convert_VkPhysicalDeviceSurfaceInfo2KHR_win_to_host(const VkPhysicalDeviceSurfaceInfo2KHR *in, VkPhysicalDeviceSurfaceInfo2KHR_host *out)
+{
+    if (!in) return;
+
+    out->sType = in->sType;
+    out->pNext = in->pNext;
+    out->surface = in->surface;
+}
+
 static inline void convert_VkDeviceMemoryOpaqueCaptureAddressInfo_win_to_host(const VkDeviceMemoryOpaqueCaptureAddressInfo *in, VkDeviceMemoryOpaqueCaptureAddressInfo_host *out)
 {
     if (!in) return;
@@ -1249,15 +1258,6 @@ static inline void convert_VkPhysicalDeviceProperties2_host_to_win(const VkPhysi
     out->sType = in->sType;
     out->pNext = in->pNext;
     convert_VkPhysicalDeviceProperties_host_to_win(&in->properties, &out->properties);
-}
-
-static inline void convert_VkPhysicalDeviceSurfaceInfo2KHR_win_to_host(const VkPhysicalDeviceSurfaceInfo2KHR *in, VkPhysicalDeviceSurfaceInfo2KHR_host *out)
-{
-    if (!in) return;
-
-    out->sType = in->sType;
-    out->pNext = in->pNext;
-    out->surface = in->surface;
 }
 
 static inline void convert_VkPipelineExecutableInfoKHR_win_to_host(const VkPipelineExecutableInfoKHR *in, VkPipelineExecutableInfoKHR_host *out)
@@ -2792,6 +2792,12 @@ void free_VkInstanceCreateInfo_struct_chain(VkInstanceCreateInfo *s)
     }
 
     s->pNext = NULL;
+}
+
+static VkResult WINAPI wine_vkAcquireFullScreenExclusiveModeEXT(VkDevice device, VkSwapchainKHR swapchain)
+{
+    TRACE("%p, 0x%s\n", device, wine_dbgstr_longlong(swapchain));
+    return device->funcs.p_vkAcquireFullScreenExclusiveModeEXT(device->device, swapchain);
 }
 
 VkResult WINAPI wine_vkAcquireNextImage2KHR(VkDevice device, const VkAcquireNextImageInfoKHR *pAcquireInfo, uint32_t *pImageIndex)
@@ -4512,6 +4518,23 @@ VkResult WINAPI wine_vkGetDeviceGroupPresentCapabilitiesKHR(VkDevice device, VkD
     return device->funcs.p_vkGetDeviceGroupPresentCapabilitiesKHR(device->device, pDeviceGroupPresentCapabilities);
 }
 
+static VkResult WINAPI wine_vkGetDeviceGroupSurfacePresentModes2EXT(VkDevice device, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo, VkDeviceGroupPresentModeFlagsKHR *pModes)
+{
+#if defined(USE_STRUCT_CONVERSION)
+    VkResult result;
+    VkPhysicalDeviceSurfaceInfo2KHR_host pSurfaceInfo_host;
+    TRACE("%p, %p, %p\n", device, pSurfaceInfo, pModes);
+
+    convert_VkPhysicalDeviceSurfaceInfo2KHR_win_to_host(pSurfaceInfo, &pSurfaceInfo_host);
+    result = device->funcs.p_vkGetDeviceGroupSurfacePresentModes2EXT(device->device, &pSurfaceInfo_host, pModes);
+
+    return result;
+#else
+    TRACE("%p, %p, %p\n", device, pSurfaceInfo, pModes);
+    return device->funcs.p_vkGetDeviceGroupSurfacePresentModes2EXT(device->device, pSurfaceInfo, pModes);
+#endif
+}
+
 VkResult thunk_vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR *pModes)
 {
     return device->funcs.p_vkGetDeviceGroupSurfacePresentModesKHR(device->device, surface, pModes);
@@ -4978,6 +5001,23 @@ VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceFormatsKHR(VkPhysicalDevice physi
     return physicalDevice->instance->funcs.p_vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice->phys_dev, surface, pSurfaceFormatCount, pSurfaceFormats);
 }
 
+static VkResult WINAPI wine_vkGetPhysicalDeviceSurfacePresentModes2EXT(VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSurfaceInfo2KHR *pSurfaceInfo, uint32_t *pPresentModeCount, VkPresentModeKHR *pPresentModes)
+{
+#if defined(USE_STRUCT_CONVERSION)
+    VkResult result;
+    VkPhysicalDeviceSurfaceInfo2KHR_host pSurfaceInfo_host;
+    TRACE("%p, %p, %p, %p\n", physicalDevice, pSurfaceInfo, pPresentModeCount, pPresentModes);
+
+    convert_VkPhysicalDeviceSurfaceInfo2KHR_win_to_host(pSurfaceInfo, &pSurfaceInfo_host);
+    result = physicalDevice->instance->funcs.p_vkGetPhysicalDeviceSurfacePresentModes2EXT(physicalDevice->phys_dev, &pSurfaceInfo_host, pPresentModeCount, pPresentModes);
+
+    return result;
+#else
+    TRACE("%p, %p, %p, %p\n", physicalDevice, pSurfaceInfo, pPresentModeCount, pPresentModes);
+    return physicalDevice->instance->funcs.p_vkGetPhysicalDeviceSurfacePresentModes2EXT(physicalDevice->phys_dev, pSurfaceInfo, pPresentModeCount, pPresentModes);
+#endif
+}
+
 VkResult thunk_vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t *pPresentModeCount, VkPresentModeKHR *pPresentModes)
 {
     return physicalDevice->instance->funcs.p_vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice->phys_dev, surface, pPresentModeCount, pPresentModes);
@@ -5190,6 +5230,12 @@ VkResult WINAPI wine_vkQueueWaitIdle(VkQueue queue)
     return queue->device->funcs.p_vkQueueWaitIdle(queue->queue);
 }
 
+static VkResult WINAPI wine_vkReleaseFullScreenExclusiveModeEXT(VkDevice device, VkSwapchainKHR swapchain)
+{
+    TRACE("%p, 0x%s\n", device, wine_dbgstr_longlong(swapchain));
+    return device->funcs.p_vkReleaseFullScreenExclusiveModeEXT(device->device, swapchain);
+}
+
 static VkResult WINAPI wine_vkReleasePerformanceConfigurationINTEL(VkDevice device, VkPerformanceConfigurationINTEL configuration)
 {
     TRACE("%p, 0x%s\n", device, wine_dbgstr_longlong(configuration));
@@ -5359,6 +5405,7 @@ static VkResult WINAPI wine_vkWaitSemaphoresKHR(VkDevice device, const VkSemapho
 
 static const struct vulkan_func vk_device_dispatch_table[] =
 {
+    {"vkAcquireFullScreenExclusiveModeEXT", &wine_vkAcquireFullScreenExclusiveModeEXT},
     {"vkAcquireNextImage2KHR", &wine_vkAcquireNextImage2KHR},
     {"vkAcquireNextImageKHR", &wine_vkAcquireNextImageKHR},
     {"vkAcquirePerformanceConfigurationINTEL", &wine_vkAcquirePerformanceConfigurationINTEL},
@@ -5560,6 +5607,7 @@ static const struct vulkan_func vk_device_dispatch_table[] =
     {"vkGetDeviceGroupPeerMemoryFeatures", &wine_vkGetDeviceGroupPeerMemoryFeatures},
     {"vkGetDeviceGroupPeerMemoryFeaturesKHR", &wine_vkGetDeviceGroupPeerMemoryFeaturesKHR},
     {"vkGetDeviceGroupPresentCapabilitiesKHR", &wine_vkGetDeviceGroupPresentCapabilitiesKHR},
+    {"vkGetDeviceGroupSurfacePresentModes2EXT", &wine_vkGetDeviceGroupSurfacePresentModes2EXT},
     {"vkGetDeviceGroupSurfacePresentModesKHR", &wine_vkGetDeviceGroupSurfacePresentModesKHR},
     {"vkGetDeviceMemoryCommitment", &wine_vkGetDeviceMemoryCommitment},
     {"vkGetDeviceMemoryOpaqueCaptureAddress", &wine_vkGetDeviceMemoryOpaqueCaptureAddress},
@@ -5603,6 +5651,7 @@ static const struct vulkan_func vk_device_dispatch_table[] =
     {"vkQueueSetPerformanceConfigurationINTEL", &wine_vkQueueSetPerformanceConfigurationINTEL},
     {"vkQueueSubmit", &wine_vkQueueSubmit},
     {"vkQueueWaitIdle", &wine_vkQueueWaitIdle},
+    {"vkReleaseFullScreenExclusiveModeEXT", &wine_vkReleaseFullScreenExclusiveModeEXT},
     {"vkReleasePerformanceConfigurationINTEL", &wine_vkReleasePerformanceConfigurationINTEL},
     {"vkReleaseProfilingLockKHR", &wine_vkReleaseProfilingLockKHR},
     {"vkResetCommandBuffer", &wine_vkResetCommandBuffer},
@@ -5677,6 +5726,7 @@ static const struct vulkan_func vk_instance_dispatch_table[] =
     {"vkGetPhysicalDeviceSurfaceCapabilitiesKHR", &wine_vkGetPhysicalDeviceSurfaceCapabilitiesKHR},
     {"vkGetPhysicalDeviceSurfaceFormats2KHR", &wine_vkGetPhysicalDeviceSurfaceFormats2KHR},
     {"vkGetPhysicalDeviceSurfaceFormatsKHR", &wine_vkGetPhysicalDeviceSurfaceFormatsKHR},
+    {"vkGetPhysicalDeviceSurfacePresentModes2EXT", &wine_vkGetPhysicalDeviceSurfacePresentModes2EXT},
     {"vkGetPhysicalDeviceSurfacePresentModesKHR", &wine_vkGetPhysicalDeviceSurfacePresentModesKHR},
     {"vkGetPhysicalDeviceSurfaceSupportKHR", &wine_vkGetPhysicalDeviceSurfaceSupportKHR},
     {"vkGetPhysicalDeviceToolPropertiesEXT", &wine_vkGetPhysicalDeviceToolPropertiesEXT},
@@ -5748,6 +5798,7 @@ static const char * const vk_device_extensions[] =
     "VK_EXT_filter_cubic",
     "VK_EXT_fragment_density_map",
     "VK_EXT_fragment_shader_interlock",
+    "VK_EXT_full_screen_exclusive",
     "VK_EXT_global_priority",
     "VK_EXT_host_query_reset",
     "VK_EXT_index_type_uint8",
@@ -5863,7 +5914,7 @@ static const char * const vk_device_extensions[] =
 
 static const VkExtensionProperties vk_device_extension_faked[] =
 {
-    {"VK_DUMMY_extension", 4},
+    {"VK_EXT_full_screen_exclusive", 4},
 };
 
 static const char * const vk_instance_extensions[] =
