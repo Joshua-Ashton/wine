@@ -1490,28 +1490,8 @@ INT WINAPI FrameRect( HDC hdc, const RECT *rect, HBRUSH hbrush )
  */
 BOOL WINAPI DrawFocusRect( HDC hdc, const RECT* rc )
 {
-    HBRUSH hOldBrush;
-    HPEN hOldPen, hNewPen;
-    INT oldDrawMode, oldBkMode;
-    LOGBRUSH lb;
-
-    hOldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
-    lb.lbStyle = BS_SOLID;
-    lb.lbColor = 0;
-    hNewPen = ExtCreatePen(PS_COSMETIC, 1, &lb, 0, NULL);
-    hOldPen = SelectObject(hdc, hNewPen);
-    oldDrawMode = SetROP2(hdc, R2_NOT);
-    oldBkMode = SetBkMode(hdc, TRANSPARENT);
-
-    Rectangle(hdc, rc->left, rc->top, rc->right, rc->bottom);
-
-    SetBkMode(hdc, oldBkMode);
-    SetROP2(hdc, oldDrawMode);
-    SelectObject(hdc, hOldPen);
-    DeleteObject(hNewPen);
-    SelectObject(hdc, hOldBrush);
-
-    return TRUE;
+    HBRUSH brush = CreateSolidBrush(RGB(153, 209, 255));
+    return FrameRect( hdc, rc, brush );
 }
 
 
