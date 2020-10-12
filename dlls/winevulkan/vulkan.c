@@ -1640,14 +1640,33 @@ VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(VkPhysicalDevice 
 VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice phys_dev,
         const VkPhysicalDeviceSurfaceInfo2KHR *surface_info, VkSurfaceCapabilities2KHR *capabilities)
 {
+    VkPhysicalDeviceSurfaceInfo2KHR surface_info_modified;
     VkResult res;
 
     TRACE("%p, %p, %p\n", phys_dev, surface_info, capabilities);
 
-    res = thunk_vkGetPhysicalDeviceSurfaceCapabilities2KHR(phys_dev, surface_info, capabilities);
+    /* Toss out VkSurfaceFullScreenExclusiveInfoEXT
+     * and VkSurfaceFullScreenExclusiveWin32InfoEXT
+     *
+     * TODO: Properly convert the pNext chain and don't
+     * unconditionally toss out every element.
+     */
+    surface_info_modified.sType   = surface_info->sType;
+    surface_info_modified.pNext   = NULL;
+    surface_info_modified.surface = surface_info->surface;
+
+    res = thunk_vkGetPhysicalDeviceSurfaceCapabilities2KHR(phys_dev, &surface_info_modified, capabilities);
 
     if (res == VK_SUCCESS)
+    {
+        VkSurfaceCapabilitiesFullScreenExclusiveEXT *full_screen_exclusive_caps;
+
         adjust_max_image_count(phys_dev, &capabilities->surfaceCapabilities);
+
+        /* Lie and say we support exclusive fullscreen. */
+        if ((full_screen_exclusive_caps = wine_vk_find_struct(capabilities, SURFACE_CAPABILITIES_FULL_SCREEN_EXCLUSIVE_EXT)))
+            full_screen_exclusive_caps->fullScreenExclusiveSupported = VK_TRUE;
+    }
 
     return res;
 }
@@ -1656,13 +1675,57 @@ VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceFormats2KHR(VkPhysicalDevice phys
         const VkPhysicalDeviceSurfaceInfo2KHR *surface_info, uint32_t *surface_format_count,
         VkSurfaceFormat2KHR *surface_formats)
 {
+    VkPhysicalDeviceSurfaceInfo2KHR surface_info_modified;
     VkResult res;
 
     TRACE("%p, %p, %p, %p\n", phys_dev, surface_info, surface_format_count, surface_formats);
 
-    res = thunk_vkGetPhysicalDeviceSurfaceFormats2KHR(phys_dev, surface_info, surface_format_count, surface_formats);
+    /* Toss out VkSurfaceFullScreenExclusiveInfoEXT
+     * and VkSurfaceFullScreenExclusiveWin32InfoEXT
+     *
+     * TODO: Properly convert the pNext chain and don't
+     * unconditionally toss out every element.
+     */
+    surface_info_modified.sType   = surface_info->sType;
+    surface_info_modified.pNext   = NULL;
+    surface_info_modified.surface = surface_info->surface;
+
+    res = thunk_vkGetPhysicalDeviceSurfaceFormats2KHR(phys_dev, &surface_info_modified, surface_format_count, surface_formats);
 
     return res;
+}
+
+VkResult WINAPI wine_vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t *pPresentModeCount, VkPresentModeKHR *pPresentModes);
+VkResult WINAPI wine_vkGetDeviceGroupSurfacePresentModesKHR(VkDevice device, VkSurfaceKHR surface, VkDeviceGroupPresentModeFlagsKHR *pModes);
+
+VkResult WINAPI wine_vkGetPhysicalDeviceSurfacePresentModes2EXT(
+    VkPhysicalDevice phys_dev, const VkPhysicalDeviceSurfaceInfo2KHR *surface_info,
+    uint32_t *present_mode_count, VkPresentModeKHR *present_modes)
+{
+    TRACE("%p, %p, %p, %p", phys_dev, surface_info, present_mode_count, present_modes);
+    return wine_vkGetPhysicalDeviceSurfacePresentModesKHR(phys_dev, surface_info->surface, present_mode_count, present_modes);
+}
+
+VkResult WINAPI wine_vkGetDeviceGroupSurfacePresentModes2EXT(
+    VkDevice device, const VkPhysicalDeviceSurfaceInfo2KHR *surface_info,
+    VkDeviceGroupPresentModeFlagsKHR *modes)
+{
+    TRACE("%p, %p, %p", device, surface_info, modes);
+    return wine_vkGetDeviceGroupSurfacePresentModesKHR(device, surface_info->surface, modes);
+}
+
+VkResult WINAPI wine_vkAcquireFullScreenExclusiveModeEXT(
+    VkDevice device, VkSwapchainKHR swapchain)
+{
+    TRACE("%p, %s", device, wine_dbgstr_longlong(swapchain));
+    return VK_SUCCESS;
+}
+
+VkResult WINAPI wine_vkReleaseFullScreenExclusiveModeEXT(
+    VkDevice device, VkSwapchainKHR swapchain)
+{
+    TRACE("%p, %s", device, wine_dbgstr_longlong(swapchain));
+    return VK_SUCCESS;
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, void *reserved)
