@@ -232,6 +232,10 @@ STRUCT_CHAIN_CONVERSIONS = [
     "VkInstanceCreateInfo",
 ]
 
+# List of device extensions to ensure that we support regardless of whether 
+# the actual driver supports them or not.
+FAKED_DEVICE_EXTENSIONS = [
+]
 
 class Direction(Enum):
     """ Parameter direction: input, output, input_output. """
@@ -2247,6 +2251,13 @@ class VkGenerator(object):
             f.write("    \"{0}\",\n".format(ext["name"]))
         f.write("};\n\n")
 
+        # Create array of faked device extensions.
+        f.write("static const VkExtensionProperties vk_device_extension_faked[] =\n{\n")
+        for ext in FAKED_DEVICE_EXTENSIONS:
+            f.write("    {{\"{0}\", {1}}},\n".format(ext["name"], ext["version"]))
+        f.write("    {\"\", 0}\n")
+        f.write("};\n\n")
+
         # Create array of instance extensions.
         f.write("static const char * const vk_instance_extensions[] =\n{\n")
         for ext in self.registry.extensions:
@@ -2276,6 +2287,16 @@ class VkGenerator(object):
         f.write("            return TRUE;\n")
         f.write("    }\n")
         f.write("    return FALSE;\n")
+        f.write("}\n\n")
+
+        f.write("unsigned int wine_vk_device_extension_faked_count(void)\n")
+        f.write("{\n")
+        f.write("    return ARRAY_SIZE(vk_device_extension_faked) - 1;\n")
+        f.write("}\n\n")
+
+        f.write("const VkExtensionProperties* wine_vk_device_extension_faked_idx(unsigned int idx)\n")
+        f.write("{\n")
+        f.write("    return &vk_device_extension_faked[idx];\n")
         f.write("}\n")
 
     def generate_thunks_h(self, f, prefix):
