@@ -1616,6 +1616,19 @@ VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice
     return res;
 }
 
+VkResult WINAPI wine_vkGetPhysicalDeviceSurfaceFormats2KHR(VkPhysicalDevice phys_dev,
+        const VkPhysicalDeviceSurfaceInfo2KHR *surface_info, uint32_t *surface_format_count,
+        VkSurfaceFormat2KHR *surface_formats)
+{
+    VkResult res;
+
+    TRACE("%p, %p, %p, %p\n", phys_dev, surface_info, surface_format_count, surface_formats);
+
+    res = thunk_vkGetPhysicalDeviceSurfaceFormats2KHR(phys_dev, surface_info, surface_format_count, surface_formats);
+
+    return res;
+}
+
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, void *reserved)
 {
     TRACE("%p, %u, %p\n", hinst, reason, reserved);
